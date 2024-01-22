@@ -4,22 +4,24 @@ compiled_package_info:
   address_alias_instantiation:
     std: "0000000000000000000000000000000000000000000000000000000000000001"
     sui: "0000000000000000000000000000000000000000000000000000000000000002"
-    test_ccip_verify_package: "0000000000000000000000000000000000000000000000000000000000000000"
-  source_digest: DE04E52D5F66731C908625D200F8F9C9A8239563C68060E5B41FC37A40506569
+    test_ccip_verify_package: 89eb7867c7d860a62c7824747aad5e4e615757c9afb42a35c189f3da752739d9
+  source_digest: 547126DEC0C02E066EDF4949484321A09CD0FA5BB2E6C6212A35A49B21D4B6C5
   build_flags:
     dev_mode: false
     test_mode: false
     generate_docs: false
-    generate_abis: false
     install_dir: ~
     force_recompilation: false
     lock_file: "./Move.lock"
-    additional_named_addresses: {}
     fetch_deps_only: false
     skip_fetch_latest_git_deps: false
     default_flavor: sui
     default_edition: ~
     deps_as_root: false
+    silence_warnings: false
+    warnings_are_errors: false
+    additional_named_addresses: {}
+    no_lint: false
 dependencies:
   - MoveStdlib
   - Sui
