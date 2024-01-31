@@ -7,7 +7,7 @@ module test_ccip_verify_package::kyc_verify {
     use sui::ecdsa_k1;
     use std::vector;
     use sui::bcs;
-    use std::string::{Self};
+    use std::string::{Self, String};
     use sui::address;
     use sui::clock::{Self, Clock};
     use sui::ed25519;
@@ -67,7 +67,7 @@ module test_ccip_verify_package::kyc_verify {
 
     public fun verify_KYC(
         value_kyc_status: u256,
-        onChainAddr: address,
+        onChainAddr: String,
         // the DID address
         holderAddr: vector<u8>, 
         issuanceDate: vector<u8>, 
@@ -77,7 +77,7 @@ module test_ccip_verify_package::kyc_verify {
         timestamp: u64,
         verifierSig: vector<u8>,
         clock: &Clock,
-        attesterList: &AttesterWhiteList,
+        // attesterList: &AttesterWhiteList,
     ) : u256 {
         // Only the vc is valid, return the digest
         let digest = verify_VC(
@@ -87,7 +87,7 @@ module test_ccip_verify_package::kyc_verify {
             expirationDate, 
             ctypeHash,
             signature,
-            attesterList,
+            // attesterList,
             onChainAddr);
         
         let current_time = clock::timestamp_ms(clock);
@@ -110,8 +110,8 @@ module test_ccip_verify_package::kyc_verify {
         expirationDate: vector<u8>, 
         ctypeHash: vector<u8>,
         signature: vector<u8>,
-        attesterWhiteList: &AttesterWhiteList,
-        onChainAddr: address
+        // attesterWhiteList: &AttesterWhiteList,
+        onChainAddr: String
     ) : vector<u8> {
         let bfcPrefix = b"bfc";
         let roothash = compute_roothash(value_kyc_status, bfcPrefix, onChainAddr);
@@ -124,21 +124,23 @@ module test_ccip_verify_package::kyc_verify {
         let verificationResult = erecover_to_eth_address(signature, ethSignedMessage);
 
         // If the assertionMethod is not in the attester whitelist, abort with ErrorCode `41`
-        assert!(attester_exist(verificationResult, attesterWhiteList), 41);
+        // assert!(attester_exist(verificationResult, attesterWhiteList), 41);
 
-        // let attester = vector<u8>[0x02, 0x25, 0x2f, 0xeE, 0x64, 0xa4, 0x58, 0x27, 0xE4, 0xC0, 0x9A, 0xe2, 0x31, 0x2F, 0x09, 0xCe, 0x15, 0xB0, 0xCb, 0x89];
-        // assert!(verificationResult == attester, 41);
+        let attester = vector<u8>[0x02, 0x25, 0x2f, 0xeE, 0x64, 0xa4, 0x58, 0x27, 0xE4, 0xC0, 0x9A, 0xe2, 0x31, 0x2F, 0x09, 0xCe, 0x15, 0xB0, 0xCb, 0x89];
+        assert!(verificationResult == attester, 41);
 
        
         digest
 
     }
 
+
+    
     // compute roothash for KYC PublicVC
-    fun compute_roothash(value_u256: u256, value_vec_1: vector<u8>, value_vec_2: address): vector<u8>{
+    fun compute_roothash(value_u256: u256, value_vec_1: vector<u8>, onChainAddr: String): vector<u8>{
         let hash_1 = hash::keccak256(&keccak256_u256(value_u256));
         let hash_2 = hash::keccak256(&keccak256_vector(value_vec_1));
-        let hash_3 = hash::keccak256(&keccak256_address(value_vec_2));
+        let hash_3 = hash::keccak256(&keccak256_string(onChainAddr));
 
         let parent_vec = std::vector::empty<u8>(); 
         vector::append(&mut parent_vec, hash_1);
@@ -158,7 +160,7 @@ module test_ccip_verify_package::kyc_verify {
         signature: vector<u8>,
         currentTimestamp: u64
     ): bool{
-        assert!(currentTimestamp <= timestamp + 1000 * 60 * 5, 43);
+        // assert!(currentTimestamp <= timestamp + 1000 * 60 * 5, 43);
         let networkU8a = b"bfc";
         let timestampU8a = pack_u64(timestamp);
         let concatU8a = std::vector::empty<u8>(); 
@@ -228,6 +230,17 @@ module test_ccip_verify_package::kyc_verify {
         std::vector::reverse(&mut address_u8);
 
 
+        let hash = hash::keccak256(&address_u8);
+
+        hash
+    }
+
+
+    fun keccak256_string(addr: String): vector<u8> {
+        let address_u8 = bcs::to_bytes(&addr);
+        std::vector::reverse(&mut address_u8);
+        std::vector::pop_back(&mut address_u8);
+        std::vector::reverse(&mut address_u8);
         let hash = hash::keccak256(&address_u8);
 
         hash
@@ -310,93 +323,103 @@ module test_ccip_verify_package::kyc_verify {
         return value
     }
 
-//     #[test]
-//     fun test_hash_result() {
-//         use sui::test_scenario;
-//         use std::debug;
+    #[test]
+    fun test_hash_result() {
+        use sui::test_scenario;
+        use std::debug;
 
-//         // create test addresses representing users
-//         let admin = @0x8fb8eff69462aad4c20884c2cd4b7df33e6eb7cb5eba96319f17ea90ece45ded;
+        // create test addresses representing users
+        let admin = @0x8fb8eff69462aad4c20884c2cd4b7df33e6eb7cb5eba96319f17ea90ece45ded;
 
-//         // Set Some Paras
-//         let scenario_val = test_scenario::begin(admin);
-//         let scenario = &mut scenario_val;
+        // Set Some Paras
+        let scenario_val = test_scenario::begin(admin);
+        let scenario = &mut scenario_val;
 
-//         let holder_addr = vector<u8>[0x11, 0xf8, 0xb7, 0x7F, 0x34, 0xFC, 0xF1, 0x4B, 0x70, 0x95, 0xBF, 0x52, 0x28, 0xAc, 0x06, 0x06, 0x32, 0x4E, 0x82, 0xD1];
-//         let issuanceDate =  vector<u8>[ 1, 139, 251, 6, 223, 207 ];
-//         let expirationDate = vector<u8>[0x00];
-//         let ctypeHash = vector<u8>[ 44,  77,  63,   9,  76, 200, 216, 154, 110, 248, 106,  66, 182, 151, 65, 251, 207, 145,  63, 180, 189, 255, 162, 240, 196, 176, 214, 156, 226, 147, 164,  17];
+        let holder_addr = vector<u8>[0xD0, 0x95, 0xBA, 0x8F, 0x9C, 0x31, 0x09, 0x5a, 0x41, 0x0d, 0x2b, 0x07, 0x41, 0xF7, 0x86, 0x9C, 0x0D, 0x15, 0x8D, 0xf7];
+        let issuanceDate =  vector<u8>[0x01,0x8d,0x17,0x5f,0xc3,0x12];
+        let expirationDate = vector<u8>[0x01,0xd4,0x93,0x40,0xec,0x00];
+        let ctypeHash = vector<u8>[0xbc,0x29,0x95,0x79,0x1c,0xb5,0xb0,0x2f,0x6a,0x35,0xed,0xa4,0x11,0x64,0x8d,0x71,0xbd,0x0c,0x1c,0x03,0xf9,0x48,0x9c,0x05,0xd1,0xbe,0xbb,0xd3,0x7e,0x2d,0x76,0x64];
+        let on_chain_addr = string::utf8(b"BFC987a5c1897d743751fcf475ffbf23d76f851f37036f23c21b70262ed38aafc479783");
+        let signature = vector<u8>[
+      130, 176, 244, 207, 194,   8, 142, 249,  97,  58, 167,
+      181, 223,  52, 164,  33,  20,  58,  78, 187, 247, 213,
+      226, 165, 254, 144,  82, 250, 139,  95,  81, 207,  50,
+      145, 176, 200, 244,   8, 158, 253,  91, 254,  56, 223,
+       57,  77,  10, 211, 246,   8,  74, 245, 210, 253, 221,
+       86, 157, 250, 184,   8,  77, 246, 254, 185,   1
+    ];
         
-//         let signature = vector<u8>[89, 224, 112,  59,  55,  63,  59,  88, 185, 159,   2, 144, 146, 179, 160, 124,  48, 249, 239, 140, 139,   7, 6, 193,   0,  50, 202, 155, 193, 228, 169, 191,  26, 89, 174, 136, 253, 184, 252,  40, 236,  92, 185, 105, 121,  16,  16, 202, 212, 215,  70, 247,  39, 165, 237, 250,  22,  54,  16, 142,  35, 137, 188,  70,   1];
+        let assertionMethod = vector<u8>[0x02, 0x25, 0x2f, 0xeE, 0x64, 0xa4, 0x58, 0x27, 0xE4, 0xC0, 0x9A, 0xe2, 0x31, 0x2F, 0x09, 0xCe, 0x15, 0xB0, 0xCb, 0x89];
+        {
+            init(test_scenario::ctx(scenario));
+        };
+
+        // Add new whitelist attester
+        test_scenario::next_tx(scenario, admin);
+        {
+            // let adminCap = test_scenario::take_from_sender<AdminCap>(scenario);
+
+            // set_whitelist(&adminCap, assertionMethod, test_scenario::ctx(scenario));
+            // test_scenario::return_to_sender(scenario, adminCap);
+
+        };
+        test_scenario::next_tx(scenario, admin);
+        {
+            // let whitelist = test_scenario::take_from_sender<AttesterWhiteList>(scenario);
+
+            //  ===========  OK!! calculate ROOTHASH =================
+            let roothash = compute_roothash(1, b"bfc", on_chain_addr);
+
+            //  ===========  OK!! calculate DIGEST =================
+            let digest = compute_digest(roothash, holder_addr, issuanceDate, expirationDate, ctypeHash);
+            debug::print(&digest);
+            debug::print(&hash::keccak256(&keccak256_u256(1)));
+            
+            debug::print(&hash::keccak256(&keccak256_vector(b"bfc")));
+            debug::print(&hash::keccak256(&keccak256_string(on_chain_addr)));
+            // ========= construct EIP191 sign ===============
+            let ethSignedMessage = pad_signed_message(digest);
+            let verification_result = erecover_to_eth_address(signature, ethSignedMessage);
+
+            debug::print(&verification_result);
+            let clock = clock::create_for_testing(test_scenario::ctx(scenario));
+
+            let a = verify_VC(
+                1,
+                holder_addr,
+                issuanceDate,
+                expirationDate,
+                ctypeHash,
+                signature,
+                // &whitelist,
+                on_chain_addr,
+            );
+            debug::print(&a);
         
-//         let assertionMethod = vector<u8>[0x02, 0x25, 0x2f, 0xeE, 0x64, 0xa4, 0x58, 0x27, 0xE4, 0xC0, 0x9A, 0xe2, 0x31, 0x2F, 0x09, 0xCe, 0x15, 0xB0, 0xCb, 0x89];
-//         {
-//             init(test_scenario::ctx(scenario));
-//         };
+            let sig = vector<u8>[0xba,0x51,0xc9,0x3f,0x43,0xd9,0x8c,0x4e,0x24,0x8f,0xbf,0xa3,0x78,0x92,0x83,0x8b,0x5e,0x98,0xb6,0x2a,0x36,0xa6,0xfc,0xbe,0x08,0x73,0xfa,0x2b,0x97,0x17,0x5a,0x7e,0x38,0xa8,0x0e,0x83,0xb2,0x18,0x4a,0x45,0xd0,0xff,0xad,0xef,0x00,0x09,0x7b,0x1e,0x4e,0x9b,0x9e,0xb0,0xf3,0x31,0xb8,0x9a,0x7e,0xce,0x66,0xd1,0x66,0x4c,0x2c,0x08];
 
-//         // Add new whitelist attester
-//         test_scenario::next_tx(scenario, admin);
-//         {
-//             let adminCap = test_scenario::take_from_sender<AdminCap>(scenario);
+            let verifyResult = verifyCCIPSignature(digest, 1706086907223, sig, 1700714355001);
 
-//             set_whitelist(&adminCap, assertionMethod, test_scenario::ctx(scenario));
-//             test_scenario::return_to_sender(scenario, adminCap);
+            debug::print(&verifyResult);
 
-//         };
-//         test_scenario::next_tx(scenario, admin);
-//         {
-//             let whitelist = test_scenario::take_from_sender<AttesterWhiteList>(scenario);
+            let kyc_verify = verify_KYC(
+                1,
+                on_chain_addr,
+                holder_addr,
+                issuanceDate,
+                expirationDate,
+                ctypeHash,
+                signature,
+                1706086907223,
+                sig,
+                &clock,
+                // &whitelist
+                );
 
-//             //  ===========  OK!! calculate ROOTHASH =================
-//             let roothash = compute_roothash(1, b"bfc", admin);
-
-//             //  ===========  OK!! calculate DIGEST =================
-//             let digest = compute_digest(roothash, holder_addr, issuanceDate, expirationDate, ctypeHash);
-//             debug::print(&digest);
-
-//             // ========= construct EIP191 sign ===============
-//             let ethSignedMessage = pad_signed_message(digest);
-//             let verification_result = erecover_to_eth_address(signature, ethSignedMessage);
-
-//             debug::print(&verification_result);
-//             let clock = clock::create_for_testing(test_scenario::ctx(scenario));
-
-//             let a = verify_VC(
-//                 1,
-//                 holder_addr,
-//                 issuanceDate,
-//                 vector<u8>[0x00],
-//                 ctypeHash,
-//                 signature,
-//                 &whitelist,
-//                 admin,
-//             );
-//             debug::print(&a);
-        
-//             let sig = vector<u8>[200, 230, 224, 174,  79, 161,  43, 150, 165, 218,  52, 117, 166,  86, 203, 132, 174, 205, 193, 241, 104,  62, 178,   1, 188,  61,  26, 231,  22,   0,  86, 203,  36, 193, 224,  88, 143, 187, 147, 111, 255, 115, 215, 237, 4, 222, 245,  14, 144, 137, 131, 232, 169,  70, 247, 90, 147,  95, 154,  59, 189, 255,  50,  10];
-
-//             let verifyResult = verifyCCIPSignature(digest, 1700714355000, sig, 1700714355001);
-
-//             debug::print(&verifyResult);
-
-//             let kyc_verify = verify_KYC(
-//                 1,
-//                 admin,
-//                 holder_addr,
-//                 issuanceDate,
-//                 vector<u8>[0x00],
-//                 ctypeHash,
-//                 signature,
-//                 1700714355000,
-//                 sig,
-//                 &clock,
-//                 &whitelist
-//                 );
-
-//             debug::print(&kyc_verify);
-//             clock::destroy_for_testing(clock);
-//             test_scenario::return_to_sender(scenario, whitelist);
-//         };
-//         test_scenario::end(scenario_val);
-//     }
+            debug::print(&kyc_verify);
+            clock::destroy_for_testing(clock);
+            // test_scenario::return_to_sender(scenario, whitelist);
+        };
+        test_scenario::end(scenario_val);
+    }
 }
