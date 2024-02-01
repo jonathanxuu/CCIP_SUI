@@ -77,7 +77,7 @@ module test_ccip_verify_package::kyc_verify {
         timestamp: u64,
         verifierSig: vector<u8>,
         clock: &Clock,
-        // attesterList: &AttesterWhiteList,
+        attesterList: &AttesterWhiteList,
     ) : u256 {
         // Only the vc is valid, return the digest
         let digest = verify_VC(
@@ -87,7 +87,7 @@ module test_ccip_verify_package::kyc_verify {
             expirationDate, 
             ctypeHash,
             signature,
-            // attesterList,
+            attesterList,
             onChainAddr);
         
         let current_time = clock::timestamp_ms(clock);
@@ -110,7 +110,7 @@ module test_ccip_verify_package::kyc_verify {
         expirationDate: vector<u8>, 
         ctypeHash: vector<u8>,
         signature: vector<u8>,
-        // attesterWhiteList: &AttesterWhiteList,
+        attesterWhiteList: &AttesterWhiteList,
         onChainAddr: String
     ) : vector<u8> {
         let bfcPrefix = b"bfc";
@@ -124,10 +124,10 @@ module test_ccip_verify_package::kyc_verify {
         let verificationResult = erecover_to_eth_address(signature, ethSignedMessage);
 
         // If the assertionMethod is not in the attester whitelist, abort with ErrorCode `41`
-        // assert!(attester_exist(verificationResult, attesterWhiteList), 41);
+        assert!(attester_exist(verificationResult, attesterWhiteList), 41);
 
-        let attester = vector<u8>[0x02, 0x25, 0x2f, 0xeE, 0x64, 0xa4, 0x58, 0x27, 0xE4, 0xC0, 0x9A, 0xe2, 0x31, 0x2F, 0x09, 0xCe, 0x15, 0xB0, 0xCb, 0x89];
-        assert!(verificationResult == attester, 41);
+        // let attester = vector<u8>[0x02, 0x25, 0x2f, 0xeE, 0x64, 0xa4, 0x58, 0x27, 0xE4, 0xC0, 0x9A, 0xe2, 0x31, 0x2F, 0x09, 0xCe, 0x15, 0xB0, 0xCb, 0x89];
+        // assert!(verificationResult == attester, 41);
 
        
         digest
@@ -160,7 +160,7 @@ module test_ccip_verify_package::kyc_verify {
         signature: vector<u8>,
         currentTimestamp: u64
     ): bool{
-        // assert!(currentTimestamp <= timestamp + 1000 * 60 * 5, 43);
+        assert!(currentTimestamp <= timestamp + 1000 * 60 * 5, 43);
         let networkU8a = b"bfc";
         let timestampU8a = pack_u64(timestamp);
         let concatU8a = std::vector::empty<u8>(); 
@@ -335,18 +335,18 @@ module test_ccip_verify_package::kyc_verify {
         let scenario_val = test_scenario::begin(admin);
         let scenario = &mut scenario_val;
 
-        let holder_addr = vector<u8>[0xD0, 0x95, 0xBA, 0x8F, 0x9C, 0x31, 0x09, 0x5a, 0x41, 0x0d, 0x2b, 0x07, 0x41, 0xF7, 0x86, 0x9C, 0x0D, 0x15, 0x8D, 0xf7];
-        let issuanceDate =  vector<u8>[0x01,0x8d,0x17,0x5f,0xc3,0x12];
+        let holder_addr = vector<u8>[0x91,0x33,0x5A,0x91,0x69,0x83,0x09,0xA6,0x0b,0xF7,0x47,0xBb,0x00,0xA5,0x6E,0xb6,0x18,0xc7,0x58,0x1e];
+        let issuanceDate =  vector<u8>[0x01,0x8d,0x5e,0xf4,0x04,0x63];
         let expirationDate = vector<u8>[0x01,0xd4,0x93,0x40,0xec,0x00];
         let ctypeHash = vector<u8>[0xbc,0x29,0x95,0x79,0x1c,0xb5,0xb0,0x2f,0x6a,0x35,0xed,0xa4,0x11,0x64,0x8d,0x71,0xbd,0x0c,0x1c,0x03,0xf9,0x48,0x9c,0x05,0xd1,0xbe,0xbb,0xd3,0x7e,0x2d,0x76,0x64];
-        let on_chain_addr = string::utf8(b"BFC987a5c1897d743751fcf475ffbf23d76f851f37036f23c21b70262ed38aafc479783");
+        let on_chain_addr = string::utf8(b"BFCb5e92ec96decaa207a41ffa1ea04c9a01ddf049c3a0c06764230cd3be1fc735ee5f2");
         let signature = vector<u8>[
-      130, 176, 244, 207, 194,   8, 142, 249,  97,  58, 167,
-      181, 223,  52, 164,  33,  20,  58,  78, 187, 247, 213,
-      226, 165, 254, 144,  82, 250, 139,  95,  81, 207,  50,
-      145, 176, 200, 244,   8, 158, 253,  91, 254,  56, 223,
-       57,  77,  10, 211, 246,   8,  74, 245, 210, 253, 221,
-       86, 157, 250, 184,   8,  77, 246, 254, 185,   1
+       40,  65, 196, 199,  41, 232,  89, 130,  81, 245,  16,
+       78,  13, 225, 133,  80, 159, 165, 249, 125, 234, 190,
+      243, 249, 251, 156, 135, 233, 175, 104, 150, 139,  82,
+      165, 153, 139,  95, 241, 242,   4, 122, 139,  54, 232,
+      154, 236, 105, 227,  24,  31,  91,  88,  12, 150, 126,
+      207, 134, 190, 211, 136, 229, 198, 233, 151,   0
     ];
         
         let assertionMethod = vector<u8>[0x02, 0x25, 0x2f, 0xeE, 0x64, 0xa4, 0x58, 0x27, 0xE4, 0xC0, 0x9A, 0xe2, 0x31, 0x2F, 0x09, 0xCe, 0x15, 0xB0, 0xCb, 0x89];
@@ -357,15 +357,15 @@ module test_ccip_verify_package::kyc_verify {
         // Add new whitelist attester
         test_scenario::next_tx(scenario, admin);
         {
-            // let adminCap = test_scenario::take_from_sender<AdminCap>(scenario);
+            let adminCap = test_scenario::take_from_sender<AdminCap>(scenario);
 
-            // set_whitelist(&adminCap, assertionMethod, test_scenario::ctx(scenario));
-            // test_scenario::return_to_sender(scenario, adminCap);
+            set_whitelist(&adminCap, assertionMethod, test_scenario::ctx(scenario));
+            test_scenario::return_to_sender(scenario, adminCap);
 
         };
         test_scenario::next_tx(scenario, admin);
         {
-            // let whitelist = test_scenario::take_from_sender<AttesterWhiteList>(scenario);
+            let whitelist = test_scenario::take_shared<AttesterWhiteList>(scenario);
 
             //  ===========  OK!! calculate ROOTHASH =================
             let roothash = compute_roothash(1, b"bfc", on_chain_addr);
@@ -391,14 +391,14 @@ module test_ccip_verify_package::kyc_verify {
                 expirationDate,
                 ctypeHash,
                 signature,
-                // &whitelist,
+                &whitelist,
                 on_chain_addr,
             );
             debug::print(&a);
         
-            let sig = vector<u8>[0xba,0x51,0xc9,0x3f,0x43,0xd9,0x8c,0x4e,0x24,0x8f,0xbf,0xa3,0x78,0x92,0x83,0x8b,0x5e,0x98,0xb6,0x2a,0x36,0xa6,0xfc,0xbe,0x08,0x73,0xfa,0x2b,0x97,0x17,0x5a,0x7e,0x38,0xa8,0x0e,0x83,0xb2,0x18,0x4a,0x45,0xd0,0xff,0xad,0xef,0x00,0x09,0x7b,0x1e,0x4e,0x9b,0x9e,0xb0,0xf3,0x31,0xb8,0x9a,0x7e,0xce,0x66,0xd1,0x66,0x4c,0x2c,0x08];
+            let sig = vector<u8>[0x41, 0xc9, 0xbc, 0xb1, 0x0d, 0x55, 0x8e, 0x7c, 0xd0, 0xba, 0xe9, 0x61, 0x63, 0x92, 0xa4, 0x08, 0x85, 0x93, 0xdf, 0xb5, 0xea, 0x00, 0x98, 0x0e, 0x1a, 0x1a, 0xde, 0xac, 0xc4, 0x8e, 0xa1, 0xd4, 0x45, 0xb2, 0x41, 0x06, 0x3a, 0x02, 0x7f, 0xd1, 0xb6, 0x81, 0xb9, 0xe7, 0x72, 0xf6, 0x7b, 0x1f, 0x4c, 0xce, 0x1c, 0x59, 0xfc, 0xd5, 0x1d, 0xe5, 0x42, 0x15, 0x77, 0x2b, 0x56, 0x05, 0xbe, 0x0a];
 
-            let verifyResult = verifyCCIPSignature(digest, 1706086907223, sig, 1700714355001);
+            let verifyResult = verifyCCIPSignature(digest, 1706755030315, sig, 1706755030315);
 
             debug::print(&verifyResult);
 
@@ -410,15 +410,15 @@ module test_ccip_verify_package::kyc_verify {
                 expirationDate,
                 ctypeHash,
                 signature,
-                1706086907223,
+                1706755030315,
                 sig,
                 &clock,
-                // &whitelist
+                &whitelist
                 );
 
             debug::print(&kyc_verify);
             clock::destroy_for_testing(clock);
-            // test_scenario::return_to_sender(scenario, whitelist);
+            test_scenario::return_shared(whitelist);
         };
         test_scenario::end(scenario_val);
     }
